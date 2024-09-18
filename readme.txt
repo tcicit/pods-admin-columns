@@ -1,4 +1,16 @@
-=== Pods Admin Columns ===
+=== New Pods Admin Columns Sortable ===
+Contributors: tcicit
+Tags: pods, custom post types, custom taxonomies, content types, custom fields, block, admin columes sortable
+Requires at least: 5.5
+Tested up to: 6.6
+Requires PHP: 5.6
+Stable tag: 0.2
+License: GPLv2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+
+Add a configuration option for showing custom fields managed by Pods in WordPress admin dashboard.
+
+=== Based on Pods Admin Columns ===
 Contributors: jokering
 Tags: pods, custom post types, custom taxonomies, content types, custom fields, block
 Requires at least: 5.5
@@ -16,6 +28,7 @@ Add a configuration option for showing custom fields managed by Pods in WordPres
 * Table and Meta storages are supported.
 * Extend admin search to match custom field value.
 * Require Pods plugin installed and active.
+* Admin Columes are sortable
 
 == Installation ==
 
@@ -31,7 +44,7 @@ OR you can just install it with WordPress by going to Plugins >> Add New >> and 
 1. New option in "Advanced" section on Pods Admin UI.
 
 == Changelog ==
-
+= 0.2  - Sept. 18, 2024
 = 1.0.2 - November 9th, 2021 =
 
 * Initial release
