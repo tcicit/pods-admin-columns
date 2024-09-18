@@ -1,16 +1,16 @@
 <?php
 /*
-Plugin Name:        Pods Admin Columns
-Plugin URI:         https://github.com/joker-x/pods-admin-columns
-Description:        Add option for showing custom fields managed by Pods in WordPress admin dashboard.
-Version:            1.0.2
-Author:             joker-x
-Author URI:         https://github.com/joker-x
-Text Domain:        pods-admin-columns
+Plugin Name:        Pods Admin Columns Sortable
+Plugin URI:         https://github.com/tcicit/pods-admin-columns
+Description:        Add option for showing custom fields managed by Pods in WordPress admin dashboard. (original: https://github.com/joker-x/pods-admin-columns)
+Version:            0.2
+Author:             tcicitx
+Author URI:         https://github.com/tcicit
+Text Domain:        pods-admin-columns-sorrt
 Domain Path:        /languages/
-Requires at least:  5.5
+Requires at least:  6.5
 Requires PHP:       5.6
-GitHub Plugin URI:  https://github.com/joker-x/pods-admin-columns
+GitHub Plugin URI:  https://github.com/tcicit/pods-admin-columns
 Primary Branch:     main
 */
 
@@ -100,26 +100,6 @@ function pods_admin_columns_install_pods() {
   echo "$html";
 }
 
-// Add custom fields to WP Dashboard
-function pods_admin_columns_add($columns) {
-  $post_type = get_post_type();
-  $fields_names = [];
-  $fields_config = pods_config_get_all_fields( pods($post_type) );
-
-  foreach ($fields_config as $field_name => $field_config) {
-    if ($field_config['show_admin_column'] == "1") {
-      $fields_names[$field_name] = $field_config['label'];
-    }
-  }
-
-  $date = $columns['date'];
-  unset($columns['date']);
-  foreach ($fields_names as $field_name => $field_label) {
-    $columns[$field_name] = $field_label;
-  }
-  $columns['date']=$date;
-  return $columns;
-}
 
 // Show custom fields to WP Dashboard
 function pods_admin_columns_populate($column) {
@@ -213,4 +193,87 @@ function pods_admin_columns_search_distinct( $where ) {
   
   return $where;
 }
+
+
+// Add custom fields to WP Dashboard and make columns sortable
+function pods_admin_columns_add($columns) {
+  $post_type = get_post_type();
+  $fields_names = [];
+  $fields_config = pods_config_get_all_fields(pods($post_type));
+
+  foreach ($fields_config as $field_name => $field_config) {
+      if ($field_config['show_admin_column'] == "1") {
+          $fields_names[$field_name] = $field_config['label'];
+      }
+  }
+
+  $date = $columns['date'];
+  unset($columns['date']);
+  foreach ($fields_names as $field_name => $field_label) {
+      $columns[$field_name] = $field_label;
+  }
+  $columns['date'] = $date;
+
+  return $columns;
+}
+
+
+// Make the columns sortable dynamically for all post types
+function pods_admin_columns_add_sortable_hooks() {
+    // Retrieve all public post types (so that user-defined types are also recorded)
+    $post_types = get_post_types( ['public' => true], 'names' );
+
+    foreach ($post_types as $post_type) {
+        add_filter("manage_edit-{$post_type}_sortable_columns", 'pods_admin_columns_sortable');
+    }
+}
+
+add_action('admin_init', 'pods_admin_columns_add_sortable_hooks');
+
+// Define sortable columns for the respective post type
+function pods_admin_columns_sortable($sortable_columns) {
+    $post_type = get_post_type();   // Determine current post type
+    $fields_config = pods_config_get_all_fields(pods($post_type));
+
+    foreach ($fields_config as $field_name => $field_config) {
+        if ($field_config['show_admin_column'] == "1") {
+            $sortable_columns[$field_name] = $field_name;  // Spalte als sortierbar markieren
+        }
+    }
+
+    return $sortable_columns;
+}
+
+
+// Modify query for sortable columns
+function pods_admin_columns_orderby($query) {
+    if (!is_admin() || !$query->is_main_query()) {
+        return;
+    }
+
+    $orderby = $query->get('orderby');
+    $post_type = $query->get('post_type');
+
+    if ($post_type && pods_api()->pod_exists($post_type)) {
+        $mypod = pods($post_type);
+        if ($mypod->pod_data['storage'] == 'table') {
+            $table_name = $mypod->pod_data['name'];
+
+            // Check if we are sorting by a custom field
+            $fields_config = pods_config_get_all_fields($mypod);
+            if (array_key_exists($orderby, $fields_config) && $fields_config[$orderby]['show_admin_column'] == "1") {
+                // Set the order by meta value
+                $query->set('meta_key', $orderby);
+
+                // Adjust for numeric values
+                if (in_array($fields_config[$orderby]['type'], ['number', 'decimal'])) {
+                    $query->set('orderby', 'meta_value_num');
+                } else {
+                    $query->set('orderby', 'meta_value');
+                }
+            }
+        }
+    }
+}
+add_action('pre_get_posts', 'pods_admin_columns_orderby');
 
